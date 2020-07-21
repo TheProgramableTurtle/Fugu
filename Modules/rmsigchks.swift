@@ -25,7 +25,15 @@ func rmsigchks_patchesFor(device: Int) -> [UInt64: [UInt8]] {
                 0x1F, 0x20, 0x03, 0xD5, // nop
             ]
         ]
-        
+    case 0x8000:
+		return [
+			0x1000792c: [ 0x1F, 0x20, 0x03, 0xD5 ],
+			0x1000791c: [
+				0x21, 0x00, 0x80, 0x52, // mov w1, #0x1
+				0xe1, 0x43, 0x01, 0xb9, // str w1, [sp, #0x140]
+				0x1F, 0x20, 0x03, 0xD5, // nop
+				]
+			] // 0x140 -> 0x10007ca0
     case 0x8010:
         return [
             0x100006ca8: [ 0x1F, 0x20, 0x03, 0xD5 ], // nop
@@ -66,7 +74,7 @@ func rmsigchks_patchesFor(device: Int) -> [UInt64: [UInt8]] {
 
 class RmSigChksModule: CommandLineModule {
     static var name: String = "rmsigchks"
-    static var description: String = "Disable signature checking in the SecureROM of a device.\nCurrently supports: t8010, t8011.\nDevice will be pwned if it is not already."
+    static var description: String = "Disable signature checking in the SecureROM of a device.\nCurrently supports: t8010, t8011 (s8000 experimental).\nDevice will be pwned if it is not already."
     
     static var requiredArguments: [CommandLineArgument] = [
         // None

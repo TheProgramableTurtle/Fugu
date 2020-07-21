@@ -1,15 +1,18 @@
 # Fugu
 Fugu is the first open source jailbreak tool based on the checkm8 exploit.  
-    
+
+__FORK:__ This fork includes WIP support for the s8000/s8003 SoC (iPhone 6s, iPhone 6 Plus, iPhone SE first generation, iPad 5th generation). To test this you need to manually copy the "checkm8_nopaddingcorruption_arm64.bin" file to the output folder because I can't get xcode to do it.
 __UPDATE:__ Fugu will now install Sileo, SSH and Substitute automatically! Additionally, all changes to the root file system are now persistent. Put your iDevice into DFU mode, run `Fugu iStrap`, unlock your iDevice and follow the on-screen prompts.  
 __IMPORTANT:__ This jailbreak is currently in development and only meant to be used by developers.  
 
 # WARNING
-**!!! ONLY DOWNLOAD FUGU FROM [https://github.com/LinusHenze/Fugu](https://github.com/LinusHenze/Fugu) AS IT IS VERY EASY TO CREATE A VERSION OF FUGU THAT CONTAINS MALWARE !!!**
+**!!! ONLY DOWNLOAD FUGU FROM [https://github.com/LinusHenze/Fugu](https://github.com/LinusHenze/Fugu) AS IT IS VERY EASY TO CREATE A VERSION OF FUGU THAT CONTAINS MALWARE !!!**  
+This fork, https://github.com/TheProgramableTurtle/Fugu, does not contain malware and should therefore be as safe to use as the original, but use it with caution as the added functionaility has not been tested and is liable to fail.  
 
 # Supported Devices
 Currently, the iPad Pro (2017, every size) and iPhone 7 are the only officially supported devices (on iOS 13 - 13.5.1).  
 All devices with the A10/A10X CPU should be supported.  
+Support for the A9 CPU is experimental and currently untested.  
 
 # Building
 _Note that you can also download a precompiled version from the releases tab._  

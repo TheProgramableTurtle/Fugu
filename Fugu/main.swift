@@ -15,6 +15,8 @@ print("                 https://github.com/LinusHenze/Fugu                \n")
 print("   This is free software, and you are welcome to redistribute it   ")
 print("under certain conditions; See the LICENSE file for more information\n")
 print("           If you paid for this software, you got scammed          ")
+print("      This fork adds experimental support for the s8000/s8003 SoC. ")
+print("            https://github.com/TheProgramableTurtle/Fugu           ")
 print("===================================================================\n")
 
 initSignalCatchers()

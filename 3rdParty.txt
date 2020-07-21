@@ -6,6 +6,12 @@ Files:
 Some code in the checkm8 folder has been derived from the checkm8 exploit.
 License: GPL v3, see the LICENSE file
 
+checkm8_a8_a9.patch by a1exandy
+https://gist.github.com/a1exdandy/ae3fb332efac879e97a41291f7fef727
+Files:
+	Shellcode/checkm8_nopaddingcorruption_arm64.S
+Some code in the checkm8 folder has been derived from this patch.
+
 miniz compression/decompression library
 Files:
     iStrap/iStrap/miniz/miniz_tinfl.c
@@ -38,3 +44,4 @@ License:
     * THE SOFTWARE.
     *
     **************************************************************************/
+
