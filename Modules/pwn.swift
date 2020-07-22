@@ -42,7 +42,7 @@ class PwnModule: CommandLineModule {
             }
             
             try StatusIndicator.new("Exploiting iDevice") { (status) -> String in
-				if iDevice.config.version == "iBoot-2234.0.0.3.3" { // iBoot for s8000
+				if iDevice.config.version == "iBoot-2234.0.0.3.3" { // iBoot for s8000/s8003 (so one entry for both under s8000 should work fine?)
 					try iDevice.exploit_s8000(status: status)
 				} else {
 					try iDevice.exploit(status: status)

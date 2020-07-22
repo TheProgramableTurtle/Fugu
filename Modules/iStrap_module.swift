@@ -6,6 +6,8 @@
 //  Copyright © 2019/2020 Linus Henze. All rights reserved.
 //
 
+// t8015 OR assignments - 0x000079e8, 0x000079cc, 0x000079ac, 0x000079a0
+
 import Foundation
 
 var iDownload_noinstall = false
@@ -42,7 +44,7 @@ func iStrap_patchesFor(device: Int) -> [UInt64: [UInt8]] {
 		
 		return [
 			// Patch to boot iBoot
-			0x100008868: [ 0xE8, 0x07, 0x00, 0x32 ], // orr w8, wzr, #0x3
+			0x1000088C8: [ 0xE8, 0x07, 0x00, 0x32 ], // orr w8, wzr, #0x3
 			
 			// Patch for the boot trampoline
 			0x1800AC000: [
@@ -99,7 +101,28 @@ func iStrap_patchesFor(device: Int) -> [UInt64: [UInt8]] {
             // Note: This must be 4kB aligned
             0x180001000: Array<UInt8>(iStrap_4x),
         ]
-        
+	
+	case 0x8015:
+		let loader = loadShellcode64(name: "t8010_t8011_iStrap_loader", constants: [])
+		
+		return [
+			// Patch to boot iBoot
+			0x100079e8: [ 0xE8, 0x07, 0x00, 0x32 ], // orr w8, wzr, #0x3 // seems to be final assignment, needs verification
+			
+			// Patch for the boot trampoline
+			0x1800AC000: [
+                0xE2, 0x07, 0x61, 0xB2, // mov x2, #0x180000000
+                0x40, 0x00, 0x3F, 0xD6, // blr x2
+            ],
+			
+			// Our loader goes here
+			0x180000000: Array<UInt8>(loader),
+			
+			// Our shellcode goes here
+			// Note: This must be 4kB aligned
+			0x180001000: Array<UInt8>(iStrap_2x)
+		]
+    
     default:
         return [:]
     }
@@ -107,7 +130,7 @@ func iStrap_patchesFor(device: Int) -> [UInt64: [UInt8]] {
 
 class iStrapModule: CommandLineModule {
     static var name: String = "iStrap"
-    static var description: String = "Send iStrap to device and boot kernel.\nCurrently supports: t8010, t8011 (s8000 experimental).\nDevice will be pwned if it is not already."
+    static var description: String = "Send iStrap to device and boot kernel.\nCurrently supports: t8010, t8011 (s8000/s8003, t8015 experimental).\nDevice will be pwned if it is not already."
     
     static var requiredArguments: [CommandLineArgument] = [
         // None
